@@ -224,3 +224,4 @@ We love contributions! Here's how you can help make TalentBridge even better:
 [![GitHub forks](https://img.shields.io/github/forks/surendrakumar6350/talentbridge?style=social)](https://github.com/surendrakumar6350/talentbridge)
 
 </div># talent_bridge
+# talent_bridge
