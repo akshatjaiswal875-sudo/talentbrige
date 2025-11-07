@@ -49,6 +49,25 @@ export function Header() {
             <Link href="/internships" className="text-sm font-medium hover:text-primary">Internships</Link>
             <Link href="/companies" className="text-sm font-medium hover:text-primary">Companies</Link>
             <Link href="/success_story" className="text-sm font-medium hover:text-primary">Success Stories</Link>
+            <div className="relative">
+              <button
+                className="text-sm font-medium hover:text-primary px-2 py-1 rounded focus:outline-none"
+                onClick={() => setMenuOpen((s) => !s)}
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+              >
+                Verification ▾
+              </button>
+              {menuOpen && (
+                <div className="absolute left-0 mt-2 w-56 bg-card border border-border rounded shadow p-2 z-50">
+                  <Link href="/assessments" className="block px-2 py-1 hover:bg-accent rounded" onClick={() => setMenuOpen(false)}>CRT</Link>
+                  <div className="mt-2 font-semibold text-sm">Skills Verification</div>
+                  <Link href="/skills-test/python" className="block px-2 py-1 hover:bg-accent rounded" onClick={() => setMenuOpen(false)}>Python</Link>
+                  <Link href="/skills-test/java" className="block px-2 py-1 hover:bg-accent rounded" onClick={() => setMenuOpen(false)}>Java</Link>
+                  <Link href="/skills-test/web" className="block px-2 py-1 hover:bg-accent rounded" onClick={() => setMenuOpen(false)}>Web</Link>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Desktop avatar + theme + logout */}
@@ -123,7 +142,12 @@ export function Header() {
             <Link href="/">Home</Link>
             <Link href="/internships">Internships</Link>
             <Link href="/companies">Companies</Link>
-            <Link href="/students">Success Stories</Link>
+            <Link href="/success_story">Success Stories</Link>
+            <div className="relative">
+              <div className="font-medium mt-2 mb-1">Verification</div>
+              <Link href="/assessments" className="block px-2 py-1 hover:bg-accent rounded">CRT</Link>
+              <Link href="/skills-test" className="block px-2 py-1 hover:bg-accent rounded">Skills Verification</Link>
+            </div>
             <div className="pt-2">
               <ThemeToggle variant="outline" />
             </div>

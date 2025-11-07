@@ -5,7 +5,7 @@ import { QUESTIONS, Question as QType, DEFAULT_QUESTIONS_PER_TEST } from "../../
 
 type AnswerRecord = { id: string; selected: number | null };
 
-export default function AssessmentTest({ userId, initialTestType = "aptitude" }: { userId: string; initialTestType?: "aptitude" | "english" | "gn" }) {
+export default function AssessmentTest({ userId, initialTestType = "aptitude" }: { userId: string; initialTestType?: string }) {
   const [testType, setTestType] = useState<typeof initialTestType>(initialTestType);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number | null>>({});
@@ -13,12 +13,14 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
   const [submittedResult, setSubmittedResult] = useState<{ score: number; total: number } | null>(null);
   const [showSummary, setShowSummary] = useState(false);
 
+  // For skill tests, show all questions ordered by difficulty; for CRT/other, use default count
+  const isSkillTest = testType.startsWith("skill-");
   const pool = useMemo(() => QUESTIONS.filter((q) => q.type === testType), [testType]);
-  // choose up to DEFAULT_QUESTIONS_PER_TEST questions
-  const questions = useMemo(() => pool.slice(0, DEFAULT_QUESTIONS_PER_TEST), [pool]);
+  const questions = useMemo(() => isSkillTest
+    ? [...pool.filter(q => q.difficulty === "easy"), ...pool.filter(q => q.difficulty === "moderate"), ...pool.filter(q => q.difficulty === "hard")]
+    : pool.slice(0, DEFAULT_QUESTIONS_PER_TEST), [pool, isSkillTest]);
 
   useEffect(() => {
-    // reset when testType changes
     setAnswers({});
     setCurrentIndex(0);
     setShowSummary(false);
@@ -79,15 +81,25 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
   return (
     <div className="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold">{testType === "gn" ? "General Knowledge Test" : testType === "english" ? "English Test" : "Aptitude Test"}</h2>
-        <div className="flex items-center gap-2">
-          <label className="text-sm">Test:</label>
-          <select value={testType} onChange={(e) => setTestType(e.target.value as any)} className="p-2 border rounded">
-            <option value="aptitude">Aptitude</option>
-            <option value="english">English</option>
-            <option value="gn">General Knowledge</option>
-          </select>
-        </div>
+        <h2 className="text-2xl font-semibold">
+          {testType.startsWith("skill-")
+            ? `Skill Test: ${testType.replace("skill-", "").toUpperCase()}`
+            : testType === "gn"
+            ? "General Knowledge Test"
+            : testType === "english"
+            ? "English Test"
+            : "Aptitude Test"}
+        </h2>
+        {!isSkillTest && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Test:</label>
+            <select value={testType} onChange={(e) => setTestType(e.target.value as any)} className="p-2 border rounded">
+              <option value="aptitude">Aptitude</option>
+              <option value="english">English</option>
+              <option value="gn">General Knowledge</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="mb-3">
@@ -122,6 +134,9 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
           {currentQ ? (
             <div>
               <div className="mb-3 font-medium">{currentIndex + 1}. {currentQ.text}</div>
+              {isSkillTest && currentQ.difficulty && (
+                <div className={`inline-block px-2 py-1 text-xs rounded ${currentQ.difficulty === "easy" ? "bg-green-100 text-green-800" : currentQ.difficulty === "moderate" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>Difficulty: {currentQ.difficulty.charAt(0).toUpperCase() + currentQ.difficulty.slice(1)}</div>
+              )}
               <div className="space-y-2">
                 {currentQ.options.map((opt, idx) => (
                   <label key={idx} className={`flex items-center gap-3 p-2 border rounded cursor-pointer ${answers[currentQ.id] === idx ? 'bg-indigo-50 border-indigo-300' : ''}`}>
