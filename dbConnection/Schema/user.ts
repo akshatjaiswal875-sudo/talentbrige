@@ -6,6 +6,10 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ["user", "admin"], default: "user" },
   googleId: { type: String },
   image: { type: String },
+  bestScores: {
+    aptitude: { type: Number, default: 0 },
+    gn: { type: Number, default: 0 },
+  },
   createdAt: { type: Date, default: Date.now },
 });
 
