@@ -1,19 +1,20 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import AssessmentTest from "../../../components/Assessments/AssessmentTest";
+import AssessmentTest from "@/components/Assessments/AssessmentTest";
 import { Header } from "../../../components/header";
-import { useParams } from "next/navigation";
+import { notFound } from "next/navigation";
+import { QUESTIONS } from "../../../data/questions";
 
-const skillNames: Record<string, string> = {
-  python: "Python",
-  java: "Java",
-  web: "Web",
-};
+const skillTypes = Array.from(new Set(QUESTIONS.filter(q => q.type.startsWith("skill-")).map(q => q.type.replace("skill-", ""))));
 
-export default function SkillTestPage() {
-  const params = useParams();
-  const skill = typeof params.skill === "string" ? params.skill : Array.isArray(params.skill) ? params.skill[0] : "python";
+export default function SkillTestPage({ params }: { params: { skill: string } }) {
+  const skill = params.skill.toLowerCase();
+  
+  // Validate if this is a valid skill
+  if (!skillTypes.includes(skill)) {
+    notFound();
+  }
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +43,9 @@ export default function SkillTestPage() {
     <>
       <Header />
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Skill Verification Test: {skillNames[skill] || skill}</h1>
+        <h1 className="text-2xl font-bold mb-4">
+          {skill.charAt(0).toUpperCase() + skill.slice(1)} Skill Verification Test
+        </h1>
         <AssessmentTest userId={userId} initialTestType={`skill-${skill}`} />
         <div className="mt-6">
           <p className="text-sm text-muted-foreground">Your skill test results will be saved and visible to recruiters.</p>

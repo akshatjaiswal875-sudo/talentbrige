@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import AssessmentTest from "../../components/Assessments/AssessmentTest";
+import { useRouter } from "next/navigation";
 import { QUESTIONS } from "../../data/questions";
+import { Header } from "../../components/header";
+import { Button } from "../../components/ui/button";
 
 const skillTypes = Array.from(new Set(QUESTIONS.filter(q => q.type.startsWith("skill-")).map(q => q.type.replace("skill-", ""))));
 
-export default function SkillsTestPage() {
+export default function SkillsTestSelection() {
+  const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSkill, setSelectedSkill] = useState(skillTypes[0] || "python");
 
   useEffect(() => {
     let mounted = true;
@@ -33,22 +35,34 @@ export default function SkillsTestPage() {
   if (!userId) return <div className="p-4">You must be logged in to take skill verification tests.</div>;
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Skill Verification Test</h1>
-        <div className="flex items-center gap-2">
-          <label className="text-sm">Select skill:</label>
-          <select value={selectedSkill} onChange={e => setSelectedSkill(e.target.value)} className="p-2 border rounded">
-            {skillTypes.map(skill => (
-              <option key={skill} value={skill}>{skill.charAt(0).toUpperCase() + skill.slice(1)}</option>
-            ))}
-          </select>
+    <>
+      <Header />
+      <div className="container mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-6">Skill Verification Tests</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {skillTypes.map(skill => (
+            <div key={skill} className="p-6 bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow">
+              <h2 className="text-xl font-semibold mb-2">
+                {skill.charAt(0).toUpperCase() + skill.slice(1)}
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Verify your {skill} skills with our comprehensive assessment.
+              </p>
+              <Button
+                onClick={() => router.push(`/skills-test/${skill}`)}
+                className="w-full"
+              >
+                Take Test
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8">
+          <p className="text-sm text-muted-foreground">
+            Each skill test is carefully designed to assess your proficiency level. Results will be visible to recruiters.
+          </p>
         </div>
       </div>
-      <AssessmentTest userId={userId} initialTestType={`skill-${selectedSkill}`} />
-      <div className="mt-6">
-        <p className="text-sm text-muted-foreground">Your skill test results will be saved and visible to recruiters.</p>
-      </div>
-    </div>
+    </>
   );
 }

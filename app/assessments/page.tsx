@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import AssessmentTest from "../../components/Assessments/AssessmentTest";
+import AssessmentTest from "@/components/Assessments/AssessmentTest";
 import { Header } from "../../components/header";
 
 export default function AssessmentsPage() {
