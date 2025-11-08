@@ -226,3 +226,5 @@ We love contributions! Here's how you can help make TalentBridge even better:
 </div># talent_bridge
 # talent_bridge
 # talent_bridge
+# talent_bridge
+# talent_bridge
