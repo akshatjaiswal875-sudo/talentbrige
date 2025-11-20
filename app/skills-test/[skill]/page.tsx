@@ -3,13 +3,14 @@
 import React, { useEffect, useState } from "react";
 import AssessmentTest from "@/components/Assessments/AssessmentTest";
 import { Header } from "../../../components/header";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { QUESTIONS } from "../../../data/questions";
 
 const skillTypes = Array.from(new Set(QUESTIONS.filter(q => q.type.startsWith("skill-")).map(q => q.type.replace("skill-", ""))));
 
-export default function SkillTestPage({ params }: { params: { skill: string } }) {
-  const skill = params.skill.toLowerCase();
+export default function SkillTestPage() {
+  const params = useParams();
+  const skill = (params.skill as string).toLowerCase();
   
   // Validate if this is a valid skill
   if (!skillTypes.includes(skill)) {

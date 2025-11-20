@@ -3,10 +3,10 @@ import { connectDb } from '@/dbConnection/connect';
 import { Course } from '@/dbConnection/Schema/course';
 import { getCurrentUser } from '@/lib/auth';
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDb();
-    const { id } = params;
+    const { id } = await params;
     const course = await Course.findById(id).lean();
     
     if (!course) {

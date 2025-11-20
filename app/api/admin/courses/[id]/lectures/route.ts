@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { connectDb } from '@/dbConnection/connect';
 import { Course } from '@/dbConnection/Schema/course';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDb();
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     if (!body.title || !body.videoUrl) {

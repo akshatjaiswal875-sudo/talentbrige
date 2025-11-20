@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function AssessmentResultPage() {
+function ResultContent() {
   const search = useSearchParams();
   const router = useRouter();
   const scoreStr = search.get('score');
@@ -49,5 +49,13 @@ export default function AssessmentResultPage() {
         <button className="p-2 border rounded" onClick={() => router.push('/assessments')}>Back to Assessments</button>
       </div>
     </div>
+  );
+}
+
+export default function AssessmentResultPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center">Loading results...</div>}>
+      <ResultContent />
+    </Suspense>
   );
 }

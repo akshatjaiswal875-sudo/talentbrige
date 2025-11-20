@@ -4,7 +4,7 @@ import { Course } from '@/dbConnection/Schema/course';
 import { Transaction } from '@/dbConnection/Schema/transaction';
 import { getCurrentUser } from '@/lib/auth';
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDb();
     const user = await getCurrentUser();
@@ -13,7 +13,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const course = await Course.findById(id);
     
     if (!course) {
