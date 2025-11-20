@@ -44,8 +44,24 @@ export function Header() {
           TalentBridge
         </Link>
         <div className="flex items-center gap-4">
-          <nav className="hidden md:flex items-center gap-4">
+            <nav className="hidden md:flex items-center gap-4">
             <Link href="/" className="text-sm font-medium hover:text-primary">Home</Link>
+            {user ? (
+              <Link href="/learning" className="text-sm font-medium hover:text-primary">Learning</Link>
+            ) : (
+              <button
+                className="text-sm font-medium hover:text-primary bg-transparent border-0 p-0"
+                onClick={() => {
+                  try {
+                    // store desired return target so LoginDialog can redirect after successful login
+                    sessionStorage.setItem('tb_returnTo', '/learning');
+                  } catch (e) { }
+                  setOpen(true);
+                }}
+              >
+                Learning
+              </button>
+            )}
             <Link href="/internships" className="text-sm font-medium hover:text-primary">Internships</Link>
             <Link href="/companies" className="text-sm font-medium hover:text-primary">Companies</Link>
             <Link href="/success_story" className="text-sm font-medium hover:text-primary">Success Stories</Link>
@@ -138,8 +154,13 @@ export function Header() {
 
       {menuOpen && (
         <div className="md:hidden bg-card border-t border-border">
-          <div className="p-4 flex flex-col gap-2">
+            <div className="p-4 flex flex-col gap-2">
             <Link href="/">Home</Link>
+              {user ? (
+                <Link href="/learning">Learning</Link>
+              ) : (
+                <button className="text-left" onClick={() => { try { sessionStorage.setItem('tb_returnTo', '/learning'); } catch (e) {} setOpen(true); }}>Learning</button>
+              )}
             <Link href="/internships">Internships</Link>
             <Link href="/companies">Companies</Link>
             <Link href="/success_story">Success Stories</Link>

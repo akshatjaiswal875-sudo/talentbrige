@@ -92,7 +92,7 @@ export default function Home() {
       )}
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/10 to-transparent" />
+        <div className="absolute inset-0 -z-10 bg-linear-to-b from-primary/10 to-transparent" />
         <div className="container mx-auto px-6 pt-20 pb-12">
           <div className="mx-auto max-w-7xl">
             <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm rounded-2xl border p-6 md:p-10">
@@ -116,7 +116,7 @@ export default function Home() {
                 </div>
 
                 {/* quick stats */}
-                <div className="mt-6 md:mt-0 md:ml-8 flex-shrink-0 w-full md:w-56">
+                <div className="mt-6 md:mt-0 md:ml-8 shrink-0 w-full md:w-56">
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-1 md:grid-cols-1">
                     <Stat label="Opportunities" value="1.2k+" />
                     <Stat label="Companies" value="350+" />

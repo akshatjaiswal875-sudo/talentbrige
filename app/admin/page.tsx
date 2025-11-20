@@ -13,6 +13,7 @@ export default async function AdminPage() {
       <div className="mb-4">
         <Link href="/admin/internships" className="text-primary underline">Manage Internships</Link>
         <Link href="/admin/applications" className="ml-4 text-primary underline">Review Applications</Link>
+        <Link href="/admin/courses" className="ml-4 text-primary underline">Upload Course</Link>
       </div>
 
       <section className="mb-6">

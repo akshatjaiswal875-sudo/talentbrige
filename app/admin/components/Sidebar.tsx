@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Home, Briefcase, Users, FileText, Menu as MenuIcon } from "lucide-react";
+import { Home, Briefcase, Users, FileText, BookOpen, Menu as MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoginDialog } from "@/components/LoginDialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: Home },
+  { href: "/admin/courses", label: "Upload Course", icon: BookOpen },
   { href: "/admin/internships", label: "Internships", icon: Briefcase },
   { href: "/admin/applications", label: "Applications", icon: FileText },
   { href: "/admin/users", label: "Users", icon: Users },
@@ -118,7 +119,7 @@ export function AdminSidebar() {
           {/* left: fixed-width slot for menu trigger so center title is stable during hydration */}
           <div className="w-10 flex items-center justify-start">
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-              <SheetTrigger>
+              <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" aria-label="Open menu">
                   <MenuIcon className="size-4" />
                 </Button>

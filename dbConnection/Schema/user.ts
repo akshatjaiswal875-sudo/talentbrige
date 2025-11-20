@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
     aptitude: { type: Number, default: 0 },
     gn: { type: Number, default: 0 },
   },
+  enrolledCourses: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }], default: [] },
   createdAt: { type: Date, default: Date.now },
 });
 

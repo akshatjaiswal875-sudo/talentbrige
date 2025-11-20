@@ -57,6 +57,19 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <GoogleOAuthProvider clientId={`${process.env.GOOGLE_CLIENT_ID}`}>
           <AuthProvider>
+            {/* auto-open login dialog when ?openLogin=1 is present */}
+            <script dangerouslySetInnerHTML={{ __html: `
+              try {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('openLogin') === '1') {
+                  window.dispatchEvent(new CustomEvent('open-login'));
+                  // remove the param from the URL so it doesn't re-open on refresh
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('openLogin');
+                  window.history.replaceState({}, '', url.toString());
+                }
+              } catch (e) { /* ignore */ }
+            ` }} />
             {children}
             <FooterWrapper />
           </AuthProvider>
