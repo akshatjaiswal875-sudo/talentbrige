@@ -6,7 +6,7 @@ type User = { id: string; name: string; email: string; role: string; image?: str
 
 type AuthContextValue = {
   user: User;
-  authChecked: boolean;
+  authChecked:boolean;
   setUser: (u: User) => void;
   reload: () => Promise<void>;
   logout: () => Promise<void>;

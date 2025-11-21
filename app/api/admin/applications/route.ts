@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
     if (role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Check query params for ordering
-  const url = new URL(request.url);
-  const order = url.searchParams.get("order") || null; // 'asc' | 'desc'
-  const reverse = url.searchParams.get("reverse") === "true";
+  const searchParams = request.nextUrl.searchParams;
+  const order = searchParams.get("order") || null; // 'asc' | 'desc'
+  const reverse = searchParams.get("reverse") === "true";
 
   // Fetch raw applications and then attach internship/applicant info
   // Support sorting by createdAt desc when requested (reverse=true or order=desc)

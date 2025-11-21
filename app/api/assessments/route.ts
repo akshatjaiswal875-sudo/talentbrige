@@ -75,9 +75,9 @@ export async function GET(request: NextRequest) {
     const decoded = jwt.verify(token, secret) as { id?: string; role?: string };
     if (!decoded || typeof decoded !== "object" || !decoded.id) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
-    const url = new URL(request.url);
-    const minScore = url.searchParams.get("minScore");
-    const testType = url.searchParams.get("testType");
+    const searchParams = request.nextUrl.searchParams;
+    const minScore = searchParams.get("minScore");
+    const testType = searchParams.get("testType");
 
     const filter: any = {};
     if (minScore) {
