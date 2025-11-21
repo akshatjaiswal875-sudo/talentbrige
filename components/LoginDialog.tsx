@@ -24,16 +24,10 @@ export function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
             const res = await fetch('/api/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }) });
             const j = await res.json();
             if (j && j.success) {
-                // store a non-HttpOnly cookie with basic user info so other apps on localhost can read it (demo only)
-                try {
-                    const safe = { id: j.user?.id, email: j.user?.email, name: j.user?.name };
-                    document.cookie = `tb_user=${encodeURIComponent(JSON.stringify(safe))}; path=/; max-age=${60 * 60 * 24}; samesite=lax`;
-                } catch (e) { /* ignore */ }
-                // stay on TalentBridge after login (do not redirect back to Learning)
                 alert('Login successful');
                 onClose();
-                // reload the current page so AuthProvider picks up the new cookie/session
-                try { window.location.reload(); } catch (e) { /* ignore */ }
+                // refresh page to pick up cookie-based auth
+                window.location.reload();
             } else {
                 alert(j?.message || 'Login failed');
             }
@@ -58,20 +52,6 @@ export function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
                         onSuccess={success}
                         onError={() => alert('Login Failed')}
                     />
-                </div>
-                <div className="flex items-center justify-center py-2">
-                    <button
-                        onClick={() => {
-                            try {
-                                const target = (process.env.NEXT_PUBLIC_LEARNING_URL || 'http://localhost:5173') + '/?openLogin=1';
-                                // navigate in same tab instead of opening a new tab
-                                window.location.href = target;
-                            } catch (e) { /* ignore */ }
-                        }}
-                        className="px-3 py-2 rounded-md border border-border bg-card hover:bg-accent/5"
-                    >
-                        Sign in on Learning
-                    </button>
                 </div>
             </DialogContent>
         </Dialog>
