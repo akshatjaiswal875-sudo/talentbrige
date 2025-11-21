@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     if (!email) return NextResponse.json({ success: false, message: "Google token missing email" }, { status: 400 });
 
     // Optional: validate audience
-    const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+    const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (GOOGLE_CLIENT_ID && info.aud && info.aud !== GOOGLE_CLIENT_ID) {
       return NextResponse.json({ success: false, message: "Token audience mismatch" }, { status: 400 });
     }
