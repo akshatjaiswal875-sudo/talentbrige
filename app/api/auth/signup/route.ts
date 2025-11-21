@@ -18,7 +18,16 @@ export async function POST(request: Request) {
     const secret = process.env.SECRET_JWT || "dev-secret";
   const token = jwt.sign({ id: user._id, role: user.role, email: user.email }, secret, { expiresIn: "7d" });
 
-  const res = NextResponse.json({ success: true });
+  const res = NextResponse.json({ 
+    success: true,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      image: user.image
+    }
+  });
   // set httpOnly cookie
   res.cookies.set("token", token, { httpOnly: true, path: "/", maxAge: 60 * 60 * 24 * 7 });
   return res;
