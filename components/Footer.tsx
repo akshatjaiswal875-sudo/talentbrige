@@ -63,6 +63,8 @@ export default function Footer() {
           <div className="text-sm text-muted-foreground">© {new Date().getFullYear()} Talent Bridge — All rights reserved.</div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <Link href="/terms" className="hover:text-foreground">Terms</Link>
+            <Link href="/cancellation" className="hover:text-foreground">Cancellation</Link>
+            <Link href="/shipping" className="hover:text-foreground">Shipping</Link>
             <Link href="/support" className="hover:text-foreground">Support</Link>
           </div>
         </div>

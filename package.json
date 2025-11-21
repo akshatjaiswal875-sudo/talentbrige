@@ -19,6 +19,7 @@
     "@react-oauth/google": "^0.12.2",
     "aws-sdk": "^2.1692.0",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
     "ioredis": "^5.8.0",
     "jose": "^6.1.0",
