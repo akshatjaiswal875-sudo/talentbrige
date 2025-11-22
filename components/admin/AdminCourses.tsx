@@ -47,6 +47,7 @@ export default function AdminCourses() {
   const [lectureNotesUrl, setLectureNotesUrl] = useState("");
   const [lectureIsPreview, setLectureIsPreview] = useState(false);
   const [lectureBusy, setLectureBusy] = useState(false);
+  const [editingLectureId, setEditingLectureId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCourses();
@@ -95,15 +96,37 @@ export default function AdminCourses() {
     } finally { setBusy(false); }
   }
 
-  async function onAddLecture(e: React.FormEvent) {
+  function openAddLecture(course: Course) {
+    setSelectedCourseId(course._id);
+    setEditingLectureId(null);
+    setLectureTitle("");
+    setLectureVideoUrl("");
+    setLectureDuration("");
+    setLectureNotesUrl("");
+    setLectureIsPreview(false);
+  }
+
+  function openEditLecture(course: Course, lecture: Lecture) {
+    setSelectedCourseId(course._id);
+    setEditingLectureId(lecture._id);
+    setLectureTitle(lecture.title || "");
+    setLectureVideoUrl(lecture.videoUrl || "");
+    setLectureDuration(lecture.duration || "");
+    setLectureNotesUrl(lecture.notesUrl || "");
+    setLectureIsPreview((lecture as any).isPreview ?? false);
+  }
+
+  async function onSubmitLecture(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedCourseId || !lectureTitle || !lectureVideoUrl) return;
     setLectureBusy(true);
     try {
+      const method = editingLectureId ? 'PUT' : 'POST';
       const res = await fetch(`/api/admin/courses/${selectedCourseId}/lectures`, {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          lectureId: editingLectureId || undefined,
           title: lectureTitle,
           videoUrl: lectureVideoUrl,
           duration: lectureDuration,
@@ -111,13 +134,14 @@ export default function AdminCourses() {
           isPreview: lectureIsPreview
         })
       });
-      if (!res.ok) throw new Error('Failed to add lecture');
+      if (!res.ok) throw new Error(editingLectureId ? 'Failed to update lecture' : 'Failed to add lecture');
       
       setLectureTitle("");
       setLectureVideoUrl("");
       setLectureDuration("");
       setLectureNotesUrl("");
       setLectureIsPreview(false);
+      setEditingLectureId(null);
       setSelectedCourseId(null); // Close dialog
       fetchCourses(); // Refresh list
     } catch (err) {
@@ -199,15 +223,25 @@ export default function AdminCourses() {
                 <p className="text-sm text-muted-foreground">{course.category} • {course.duration} • {course.price}</p>
                 <p className="text-sm mt-2 line-clamp-2">{course.description}</p>
                 <div className="mt-4 flex items-center gap-2">
-                  <Dialog>
+                  <Dialog
+                    open={selectedCourseId === course._id}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setSelectedCourseId(null);
+                        setEditingLectureId(null);
+                      }
+                    }}
+                  >
                     <DialogTrigger asChild>
-                      <Button variant="outline" onClick={() => setSelectedCourseId(course._id)}>Add Lecture</Button>
+                      <Button variant="outline" onClick={() => openAddLecture(course)}>
+                        Add / Edit Lecture
+                      </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Add Lecture to {course.title}</DialogTitle>
+                        <DialogTitle>{editingLectureId ? `Edit Lecture in ${course.title}` : `Add Lecture to ${course.title}`}</DialogTitle>
                       </DialogHeader>
-                      <form onSubmit={onAddLecture} className="space-y-4 mt-4">
+                      <form onSubmit={onSubmitLecture} className="space-y-4 mt-4">
                         <div>
                           <Label>Lecture Title</Label>
                           <Input value={lectureTitle} onChange={e => setLectureTitle(e.target.value)} required />
@@ -235,13 +269,23 @@ export default function AdminCourses() {
                           <Label htmlFor="isPreview">Free Preview?</Label>
                         </div>
                         <Button type="submit" disabled={lectureBusy} className="w-full">
-                          {lectureBusy ? 'Adding...' : 'Add Lecture'}
+                          {lectureBusy ? (editingLectureId ? 'Updating...' : 'Adding...') : (editingLectureId ? 'Update Lecture' : 'Add Lecture')}
                         </Button>
                       </form>
                     </DialogContent>
                   </Dialog>
-                  <div className="text-sm text-muted-foreground ml-2">
-                    {course.lectures?.length || 0} lectures
+                  <div className="text-sm text-muted-foreground ml-2 flex flex-wrap gap-2">
+                    <span>{course.lectures?.length || 0} lectures</span>
+                    {course.lectures?.map((lec) => (
+                      <button
+                        key={lec._id}
+                        type="button"
+                        className="text-xs px-2 py-1 border rounded hover:bg-accent"
+                        onClick={() => openEditLecture(course, lec)}
+                      >
+                        Edit: {lec.title || 'Untitled'}
+                      </button>
+                    ))}
                   </div>
                   <Button variant="destructive" size="sm" onClick={() => onDeleteCourse(course._id)} className="ml-auto">
                     Delete

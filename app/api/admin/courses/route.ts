@@ -33,7 +33,8 @@ export async function POST(req: Request) {
 export async function GET() {
     try {
       await connectDb();
-      const courses = await Course.find().sort({ createdAt: -1 });
+      // Sort by _id for better performance (uses default index)
+      const courses = await Course.find().sort({ _id: -1 });
       return NextResponse.json({ courses });
     } catch (err) {
       console.error('Error fetching courses:', err);

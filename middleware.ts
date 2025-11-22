@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
         hour12: true
     }).format(new Date());
 
-    console.log(`[${istTime}] ${method} ${url} — IP: ${ip}`);
+    // console.log(`[${istTime}] ${method} ${url} — IP: ${ip}`);
 
     // If there's a token, verify it
     let payload: any = null;
@@ -69,12 +69,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico).*)',
-        // Match all request paths except for:
-        // - api (API routes)
-        // - _next/static (static files)
-        // - _next/image (image optimization files)
-        // - favicon.ico, sitemap.xml, robots.txt (metadata files)
+        /*
+         * Match all request paths except for the ones starting with:
+         * - api (API routes)
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+         */
         '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
     ],
 };
