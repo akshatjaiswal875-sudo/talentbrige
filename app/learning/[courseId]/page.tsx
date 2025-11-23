@@ -281,6 +281,9 @@ export default function CoursePage() {
                       <div className="space-y-4">
                           <Lock className="h-12 w-12 mx-auto text-slate-400" />
                           <h3 className="text-xl font-bold">This course is locked</h3>
+                          {course.price && (
+                            <p className="text-lg font-semibold text-white">Course Price: {course.price}</p>
+                          )}
                           <p className="text-slate-300">Enroll in this course to access all lectures.</p>
                         <Button size="lg" onClick={handleEnroll} disabled={transactionStatus === 'pending'}>
                           {transactionStatus === 'pending' ? "Payment Pending" : "Enroll Now"}
@@ -295,6 +298,9 @@ export default function CoursePage() {
             <div className="flex items-start justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">{activeLecture?.title || course.title}</h1>
+                    {course.price && (
+                      <p className="mt-2 text-lg font-semibold text-primary">{course.price}</p>
+                    )}
                     <p className="text-muted-foreground mt-2">{activeLecture?.description || course.description}</p>
                     
                     {/* Navigation & Actions */}

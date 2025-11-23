@@ -254,7 +254,13 @@ export default function Home() {
                 </div>
                 <CardHeader>
                   <CardTitle className="line-clamp-1">{course.title}</CardTitle>
-                  <CardDescription>{[course.duration, course.price].filter(Boolean).join(" • ")}</CardDescription>
+                  <CardDescription className="flex flex-wrap items-center gap-2 text-sm">
+                    {course.duration && <span>{course.duration}</span>}
+                    {course.duration && course.price && <span className="text-muted-foreground">•</span>}
+                    {course.price && (
+                      <span className="font-semibold text-foreground">{course.price}</span>
+                    )}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1">
                   <p className="text-sm text-muted-foreground line-clamp-3">{course.description}</p>
