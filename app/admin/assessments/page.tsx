@@ -18,7 +18,7 @@ export default function AdminAssessmentsPage() {
   const [results, setResults] = useState<AssessmentRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchResults = async () => {
+  const fetchResults = React.useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -34,11 +34,11 @@ export default function AdminAssessmentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [minScore, testType]);
 
   useEffect(() => {
     fetchResults();
-  }, []);
+  }, [fetchResults]);
 
   return (
     <div className="p-6">

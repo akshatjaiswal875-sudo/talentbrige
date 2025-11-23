@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,49 +48,7 @@ export default function CoursePage() {
   const [marking, setMarking] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchCourse();
-  }, [courseId]);
-
-  useEffect(() => {
-    if (user && course) {
-        fetchProgress();
-    }
-  }, [courseId, user, course?._id]); // Depend on course ID to avoid deep object diff issues
-
-  useEffect(() => {
-    if (activeLecture && user && hasAccess) {
-        // Update last played lecture without changing completion status
-        const isCompleted = completedLectures.has(activeLecture._id);
-        fetch(`/api/courses/${courseId}/progress`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lectureId: activeLecture._id, completed: isCompleted })
-        }).catch(() => {});
-    }
-  }, [activeLecture, user, hasAccess, courseId]); // Removed completedLectures from dependency to avoid loop
-
-  async function fetchProgress() {
-    try {
-        const res = await fetch(`/api/courses/${courseId}/progress`);
-        if (res.ok) {
-            const data = await res.json();
-            setCompletedLectures(new Set(data.completedLectures || []));
-            
-            // If we have a last played lecture, switch to it
-            // Only if the user hasn't manually selected one yet (or we just loaded)
-            // For simplicity, we'll just switch if it's the initial load (we can track this if needed, but let's just switch)
-            if (data.lastPlayedLectureId && course) {
-                 const last = course.lectures.find((l: Lecture) => l._id === data.lastPlayedLectureId);
-                 if (last) setActiveLecture(last);
-            }
-        }
-    } catch (e) {
-        console.error("Failed to fetch progress", e);
-    }
-  }
-
-  async function fetchCourse() {
+  const fetchCourse = React.useCallback(async () => {
     try {
       const res = await fetch(`/api/courses/${courseId}`);
       const data = await res.json();
@@ -113,7 +71,49 @@ export default function CoursePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [courseId, activeLecture]);
+
+  const fetchProgress = React.useCallback(async () => {
+    try {
+        const res = await fetch(`/api/courses/${courseId}/progress`);
+        if (res.ok) {
+            const data = await res.json();
+            setCompletedLectures(new Set(data.completedLectures || []));
+            
+            // If we have a last played lecture, switch to it
+            // Only if the user hasn't manually selected one yet (or we just loaded)
+            // For simplicity, we'll just switch if it's the initial load (we can track this if needed, but let's just switch)
+            if (data.lastPlayedLectureId && course) {
+                 const last = course.lectures.find((l: Lecture) => l._id === data.lastPlayedLectureId);
+                 if (last) setActiveLecture(last);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to fetch progress", e);
+    }
+  }, [courseId, course]);
+
+  useEffect(() => {
+    fetchCourse();
+  }, [fetchCourse]);
+
+  useEffect(() => {
+    if (user && course) {
+        fetchProgress();
+    }
+  }, [user, course, fetchProgress]); // Depend on course ID to avoid deep object diff issues
+
+  useEffect(() => {
+    if (activeLecture && user && hasAccess) {
+        // Update last played lecture without changing completion status
+        const isCompleted = completedLectures.has(activeLecture._id);
+        fetch(`/api/courses/${courseId}/progress`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lectureId: activeLecture._id, completed: isCompleted })
+        }).catch(() => {});
+    }
+  }, [activeLecture, user, hasAccess, courseId, completedLectures]); // Removed completedLectures from dependency to avoid loop
 
   async function toggleComplete(lectureId: string) {
     if (!hasAccess) return;

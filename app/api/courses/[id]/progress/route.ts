@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const typedUser = user as { _id: string };
 
   try {
-    let progress = await CourseProgress.findOne({ user: typedUser._id, course: courseId });
+    const progress = await CourseProgress.findOne({ user: typedUser._id, course: courseId });
     if (!progress) {
         return NextResponse.json({ completedLectures: [] });
     }

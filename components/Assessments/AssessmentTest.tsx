@@ -20,6 +20,100 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
   const [submittedResult, setSubmittedResult] = useState<{ score: number; total: number } | null>(null);
   const [showSummary, setShowSummary] = useState(false);
   
+  // Webcam: start when user starts the test, stop on submit/unmount
+  useEffect(() => {
+    let mounted = true;
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (!mounted) return;
+        setCameraAllowed(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (e) {
+        console.warn('Camera not allowed', e);
+        setCameraAllowed(false);
+      }
+    }
+
+    if (testStarted) startCamera();
+
+    const videoElement = videoRef.current;
+
+    return () => {
+      mounted = false;
+      if (videoElement && videoElement.srcObject) {
+        (videoElement.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+        videoElement.srcObject = null;
+      }
+      setCameraAllowed(false);
+    };
+  }, [testStarted]);
+
+  // For skill tests, show all questions ordered by difficulty; for CRT/other, use default count
+  const isSkillTest = testType.startsWith("skill-");
+  const pool = useMemo(() => QUESTIONS.filter((q) => q.type === testType), [testType]);
+  const questions = useMemo(() => isSkillTest
+    ? [...pool.filter(q => q.difficulty === "easy"), ...pool.filter(q => q.difficulty === "moderate"), ...pool.filter(q => q.difficulty === "hard")]
+    : pool.slice(0, DEFAULT_QUESTIONS_PER_TEST), [pool, isSkillTest]);
+
+  useEffect(() => {
+    setAnswers({});
+    setCurrentIndex(0);
+    setShowSummary(false);
+    setSubmittedResult(null);
+  }, [testType]);
+
+  const total = questions.length;
+  const currentQ = questions[currentIndex];
+
+  const handleSelect = (qid: string, idx: number) => {
+    setAnswers((s) => ({ ...s, [qid]: idx }));
+  };
+
+  const handleNext = () => setCurrentIndex((i) => Math.min(i + 1, total - 1));
+  const handlePrev = () => setCurrentIndex((i) => Math.max(i - 1, 0));
+
+  const computeScore = React.useCallback(() => {
+    let score = 0;
+    const answerArray: AnswerRecord[] = questions.map((q) => ({ id: q.id, selected: answers[q.id] ?? null }));
+    questions.forEach((q) => {
+      if (answers[q.id] === q.correctIndex) score += 1;
+    });
+    return { score, total, answerArray };
+  }, [questions, answers, total]);
+
+  function getBadge(score: number, total: number) {
+    const percent = (score / total) * 100;
+    if (percent < 40) return { color: "bg-yellow-400 text-yellow-900 dark:bg-yellow-500 dark:text-yellow-950", label: "Beginner" };
+    if (percent < 60) return { color: "bg-blue-400 text-blue-900 dark:bg-blue-500 dark:text-blue-950", label: "Average" };
+    if (percent < 85) return { color: "bg-green-400 text-green-900 dark:bg-green-500 dark:text-green-950", label: "Good" };
+    return { color: "bg-red-500 text-white dark:bg-red-600 dark:text-white", label: "Excellent" };
+  }
+
+  const handleSubmit = React.useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const result = computeScore();
+      // stop camera tracks
+      if (videoRef.current && videoRef.current.srcObject) {
+        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      setCameraAllowed(false);
+      setSubmittedResult(result);
+      // Navigate to results page with query params
+      const params = new URLSearchParams({ score: String(result.score), total: String(result.total), testType });
+      router.push(`/assessments/result?${params.toString()}`);
+    } catch (error) {
+      console.error('Failed to submit test:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [submitting, computeScore, router, testType]);
+
   // Privacy/anti-cheat: block right-click, copy, paste, and auto-submit on tab switch/close
   useEffect(() => {
     function blockEvent(e: Event) {
@@ -50,99 +144,7 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
       window.removeEventListener("blur", autoSubmit);
       window.removeEventListener("beforeunload", autoSubmit);
     };
-  }, [showSummary, submittedResult, testStarted]);
-
-  // Webcam: start when user starts the test, stop on submit/unmount
-  useEffect(() => {
-    let mounted = true;
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (!mounted) return;
-        setCameraAllowed(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (e) {
-        console.warn('Camera not allowed', e);
-        setCameraAllowed(false);
-      }
-    }
-
-    if (testStarted) startCamera();
-
-    return () => {
-      mounted = false;
-      if (videoRef.current && videoRef.current.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      }
-      setCameraAllowed(false);
-    };
-  }, [testStarted]);
-
-  // For skill tests, show all questions ordered by difficulty; for CRT/other, use default count
-  const isSkillTest = testType.startsWith("skill-");
-  const pool = useMemo(() => QUESTIONS.filter((q) => q.type === testType), [testType]);
-  const questions = useMemo(() => isSkillTest
-    ? [...pool.filter(q => q.difficulty === "easy"), ...pool.filter(q => q.difficulty === "moderate"), ...pool.filter(q => q.difficulty === "hard")]
-    : pool.slice(0, DEFAULT_QUESTIONS_PER_TEST), [pool, isSkillTest]);
-
-  useEffect(() => {
-    setAnswers({});
-    setCurrentIndex(0);
-    setShowSummary(false);
-    setSubmittedResult(null);
-  }, [testType]);
-
-  const total = questions.length;
-  const currentQ = questions[currentIndex];
-
-  const handleSelect = (qid: string, idx: number) => {
-    setAnswers((s) => ({ ...s, [qid]: idx }));
-  };
-
-  const handleNext = () => setCurrentIndex((i) => Math.min(i + 1, total - 1));
-  const handlePrev = () => setCurrentIndex((i) => Math.max(i - 1, 0));
-
-  const computeScore = () => {
-    let score = 0;
-    const answerArray: AnswerRecord[] = questions.map((q) => ({ id: q.id, selected: answers[q.id] ?? null }));
-    questions.forEach((q) => {
-      if (answers[q.id] === q.correctIndex) score += 1;
-    });
-    return { score, total, answerArray };
-  };
-
-  function getBadge(score: number, total: number) {
-    const percent = (score / total) * 100;
-    if (percent < 40) return { color: "bg-yellow-400 text-yellow-900 dark:bg-yellow-500 dark:text-yellow-950", label: "Beginner" };
-    if (percent < 60) return { color: "bg-blue-400 text-blue-900 dark:bg-blue-500 dark:text-blue-950", label: "Average" };
-    if (percent < 85) return { color: "bg-green-400 text-green-900 dark:bg-green-500 dark:text-green-950", label: "Good" };
-    return { color: "bg-red-500 text-white dark:bg-red-600 dark:text-white", label: "Excellent" };
-  }
-
-  const handleSubmit = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      const result = computeScore();
-      // stop camera tracks
-      if (videoRef.current && videoRef.current.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      }
-      setCameraAllowed(false);
-      setSubmittedResult(result);
-      // Navigate to results page with query params
-      const params = new URLSearchParams({ score: String(result.score), total: String(result.total), testType });
-      router.push(`/assessments/result?${params.toString()}`);
-    } catch (error) {
-      console.error('Failed to submit test:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, [showSummary, submittedResult, testStarted, handleSubmit]);
 
   return (
     <div className="max-w-2xl mx-auto bg-card text-card-foreground shadow-md rounded-lg p-6 border border-border">
