@@ -22,6 +22,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
     }
 
+    if (!transaction.userId || !transaction.courseId) {
+      return NextResponse.json({ error: "Associated User or Course not found" }, { status: 404 });
+    }
+
     if (transaction.status === 'success') {
       return NextResponse.json({ error: "Transaction already approved" }, { status: 400 });
     }
@@ -34,6 +38,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // We need to add the courseId to the user's enrolledCourses array
     const userObj = transaction.userId as any;
     const courseObj = transaction.courseId as any;
+
+    if (!userObj._id || !courseObj._id) {
+       return NextResponse.json({ error: "Invalid transaction data" }, { status: 500 });
+    }
 
     await User.findByIdAndUpdate(userObj._id, {
       $addToSet: { enrolledCourses: courseObj._id }

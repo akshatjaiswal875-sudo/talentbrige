@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 
 interface Transaction {
   _id: string;
@@ -69,6 +69,30 @@ export default function AdminTransactionsPage() {
     }
   }
 
+  async function handleDecline(id: string) {
+    if (!confirm("Are you sure you want to DECLINE this transaction?")) return;
+    
+    setProcessingId(id);
+    try {
+      const res = await fetch(`/api/admin/transactions/${id}/decline`, {
+        method: "POST",
+      });
+      
+      if (res.ok) {
+        // Update local state
+        setTransactions(prev => prev.map(t => 
+          t._id === id ? { ...t, status: 'failed' } : t
+        ));
+      } else {
+        alert("Failed to decline transaction");
+      }
+    } catch (error) {
+      alert("Error declining transaction");
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   if (loading) return <div className="p-8 text-center">Loading transactions...</div>;
 
   return (
@@ -119,20 +143,36 @@ export default function AdminTransactionsPage() {
                     </td>
                     <td className="px-4 py-3">
                       {t.status === 'pending' && (
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleApprove(t._id)}
-                          disabled={processingId === t._id}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          {processingId === t._id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Check className="h-4 w-4 mr-1" /> Approve
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleApprove(t._id)}
+                            disabled={processingId === t._id}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            {processingId === t._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4 mr-1" /> Approve
+                              </>
+                            )}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleDecline(t._id)}
+                            disabled={processingId === t._id}
+                          >
+                            {processingId === t._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <X className="h-4 w-4 mr-1" /> Decline
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       )}
                     </td>
                   </tr>
