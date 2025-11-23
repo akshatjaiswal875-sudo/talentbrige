@@ -7,13 +7,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   try {
     await connectDb();
     const { id } = await params;
-    const course = await Course.findById(id).lean();
+
+    // Run queries in parallel for better performance
+    const [course, user] = await Promise.all([
+        Course.findById(id).lean(),
+        getCurrentUser()
+    ]);
     
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    const user = await getCurrentUser();
     const enrolledCourses = user?.enrolledCourses || [];
     const isEnrolled = user && (user.role === 'admin' || enrolledCourses.map((id: any) => id.toString()).includes(id));
     

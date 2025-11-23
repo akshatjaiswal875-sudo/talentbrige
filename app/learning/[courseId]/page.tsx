@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, Lock, FileText, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import { PaymentModal } from "@/components/PaymentModal";
 
 interface Lecture {
   _id: string;
@@ -18,6 +17,13 @@ interface Lecture {
   notesUrl?: string;
 }
 
+interface Question {
+  _id: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+}
+
 interface Course {
   _id: string;
   title: string;
@@ -25,7 +31,10 @@ interface Course {
   price: string;
   bannerUrl?: string;
   lectures: Lecture[];
+  questions?: Question[];
 }
+
+import { ManualPaymentModal } from "@/components/ManualPaymentModal";
 
 export default function CoursePage() {
   const { courseId } = useParams();
@@ -35,13 +44,19 @@ export default function CoursePage() {
   const [hasAccess, setHasAccess] = useState(false);
   const [activeLecture, setActiveLecture] = useState<Lecture | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showPayment, setShowPayment] = useState(false);
   const [completedLectures, setCompletedLectures] = useState<Set<string>>(new Set());
   const [marking, setMarking] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCourse();
-  }, [courseId, user]);
+  }, [courseId]);
+
+  useEffect(() => {
+    if (user && course) {
+        fetchProgress();
+    }
+  }, [courseId, user, course?._id]); // Depend on course ID to avoid deep object diff issues
 
   useEffect(() => {
     if (activeLecture && user && hasAccess) {
@@ -53,7 +68,27 @@ export default function CoursePage() {
             body: JSON.stringify({ lectureId: activeLecture._id, completed: isCompleted })
         }).catch(() => {});
     }
-  }, [activeLecture, user, hasAccess, courseId, completedLectures]);
+  }, [activeLecture, user, hasAccess, courseId]); // Removed completedLectures from dependency to avoid loop
+
+  async function fetchProgress() {
+    try {
+        const res = await fetch(`/api/courses/${courseId}/progress`);
+        if (res.ok) {
+            const data = await res.json();
+            setCompletedLectures(new Set(data.completedLectures || []));
+            
+            // If we have a last played lecture, switch to it
+            // Only if the user hasn't manually selected one yet (or we just loaded)
+            // For simplicity, we'll just switch if it's the initial load (we can track this if needed, but let's just switch)
+            if (data.lastPlayedLectureId && course) {
+                 const last = course.lectures.find((l: Lecture) => l._id === data.lastPlayedLectureId);
+                 if (last) setActiveLecture(last);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to fetch progress", e);
+    }
+  }
 
   async function fetchCourse() {
     try {
@@ -63,31 +98,15 @@ export default function CoursePage() {
         setCourse(data.course);
         setHasAccess(data.hasAccess);
         
-        let initialLecture = null;
-        if (data.course.lectures?.length > 0) {
+        // Set initial active lecture (default to first or preview)
+        if (!activeLecture && data.course.lectures?.length > 0) {
             if (data.hasAccess) {
-                initialLecture = data.course.lectures[0];
+                setActiveLecture(data.course.lectures[0]);
             } else {
-                initialLecture = data.course.lectures.find((l: Lecture) => l.isPreview);
+                const preview = data.course.lectures.find((l: Lecture) => l.isPreview);
+                if (preview) setActiveLecture(preview);
             }
         }
-
-        // If user is logged in and has access, fetch progress
-        if (user && data.hasAccess) {
-            try {
-                const pRes = await fetch(`/api/courses/${courseId}/progress`);
-                if (pRes.ok) {
-                    const pData = await pRes.json();
-                    setCompletedLectures(new Set(pData.completedLectures || []));
-                    if (pData.lastPlayedLectureId) {
-                        const last = data.course.lectures.find((l: Lecture) => l._id === pData.lastPlayedLectureId);
-                        if (last) initialLecture = last;
-                    }
-                }
-            } catch (e) { console.error(e); }
-        }
-        
-        if (initialLecture) setActiveLecture(initialLecture);
       }
     } catch (e) {
       console.error("Failed to fetch course", e);
@@ -139,9 +158,9 @@ export default function CoursePage() {
     }
   }
 
-  async function handlePaymentSuccess(paymentId: string) {
-    setShowPayment(false);
-    fetchCourse(); // Refresh to get access
+  function handleEnroll() {
+    if (!course) return;
+    setIsPaymentModalOpen(true);
   }
 
   if (loading) return <div className="p-8 text-center">Loading course...</div>;
@@ -149,14 +168,6 @@ export default function CoursePage() {
 
   return (
     <div className="container mx-auto py-6 px-4">
-      <PaymentModal 
-        isOpen={showPayment} 
-        onClose={() => setShowPayment(false)} 
-        onSuccess={handlePaymentSuccess}
-        courseTitle={course.title}
-        price={course.price}
-        courseId={course._id}
-      />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -185,11 +196,11 @@ export default function CoursePage() {
                       <p>Select a lecture to start watching</p>
                   ) : (
                       <div className="space-y-4">
-                          <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+                          <Lock className="h-12 w-12 mx-auto text-slate-400" />
                           <h3 className="text-xl font-bold">This course is locked</h3>
-                          <p className="text-muted-foreground">Purchase this course to access all lectures.</p>
-                          <Button size="lg" onClick={() => setShowPayment(true)}>
-                              {`Buy Course for ${course.price}`}
+                          <p className="text-slate-300">Enroll in this course to access all lectures.</p>
+                          <Button size="lg" onClick={handleEnroll}>
+                              Enroll Now
                           </Button>
                       </div>
                   )}
@@ -217,7 +228,7 @@ export default function CoursePage() {
                             >
                                 {completedLectures.has(activeLecture._id) ? (
                                     <>
-                                        <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                        <CheckCircle className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
                                         Completed
                                     </>
                                 ) : (
@@ -241,8 +252,8 @@ export default function CoursePage() {
                     )}
                 </div>
                 {!hasAccess && (
-                    <Button onClick={() => setShowPayment(true)}>
-                        {`Buy for ${course.price}`}
+                    <Button onClick={handleEnroll}>
+                        Enroll Now
                     </Button>
                 )}
             </div>
@@ -287,14 +298,14 @@ export default function CoursePage() {
                         {isLocked ? (
                             <Lock className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
                         ) : isCompleted ? (
-                            <CheckCircle className="h-5 w-5 mt-0.5 text-green-600 shrink-0" />
+                            <CheckCircle className="h-5 w-5 mt-0.5 text-green-600 dark:text-green-400 shrink-0" />
                         ) : (
                             <PlayCircle className="h-5 w-5 mt-0.5 text-primary shrink-0" />
                         )}
                         <div>
                         <div className="font-medium text-sm flex items-center gap-2">
                             {index + 1}. {lecture.title}
-                            {lecture.isPreview && <span className="text-xs bg-green-100 text-green-800 px-1.5 py-0.5 rounded">Preview</span>}
+                            {lecture.isPreview && <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 rounded">Preview</span>}
                         </div>
                         {lecture.duration && (
                             <div className="text-xs text-muted-foreground mt-1">{lecture.duration}</div>
@@ -313,6 +324,16 @@ export default function CoursePage() {
           </Card>
         </div>
       </div>
+      
+      {course && (
+        <ManualPaymentModal 
+          isOpen={isPaymentModalOpen} 
+          onClose={() => setIsPaymentModalOpen(false)} 
+          courseTitle={course.title} 
+          price={course.price || "₹0"} 
+          courseId={course._id} 
+        />
+      )}
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { connectDb } from '@/dbConnection/connect';
 import { Course } from '@/dbConnection/Schema/course';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     await connectDb();

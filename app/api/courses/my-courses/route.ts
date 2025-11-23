@@ -3,6 +3,8 @@ import { connectDb } from '@/dbConnection/connect';
 import { Course } from '@/dbConnection/Schema/course';
 import { getCurrentUser } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     await connectDb();

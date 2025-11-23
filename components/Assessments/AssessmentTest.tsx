@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { QUESTIONS, Question as QType, DEFAULT_QUESTIONS_PER_TEST } from "../../data/questions";
+import { Button } from "@/components/ui/button";
 
 type AnswerRecord = { id: string; selected: number | null };
 
@@ -115,10 +116,10 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
 
   function getBadge(score: number, total: number) {
     const percent = (score / total) * 100;
-    if (percent < 40) return { color: "bg-yellow-400 text-yellow-900", label: "Beginner" };
-    if (percent < 60) return { color: "bg-blue-400 text-blue-900", label: "Average" };
-    if (percent < 85) return { color: "bg-green-400 text-green-900", label: "Good" };
-    return { color: "bg-red-500 text-white", label: "Excellent" };
+    if (percent < 40) return { color: "bg-yellow-400 text-yellow-900 dark:bg-yellow-500 dark:text-yellow-950", label: "Beginner" };
+    if (percent < 60) return { color: "bg-blue-400 text-blue-900 dark:bg-blue-500 dark:text-blue-950", label: "Average" };
+    if (percent < 85) return { color: "bg-green-400 text-green-900 dark:bg-green-500 dark:text-green-950", label: "Good" };
+    return { color: "bg-red-500 text-white dark:bg-red-600 dark:text-white", label: "Excellent" };
   }
 
   const handleSubmit = async () => {
@@ -144,24 +145,24 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white shadow-md rounded-lg p-6">
+    <div className="max-w-2xl mx-auto bg-card text-card-foreground shadow-md rounded-lg p-6 border border-border">
       {/* Webcam feed requirement */}
       <div className="mb-4">
         <div className="font-semibold mb-1">Camera must be ON during the test</div>
-        <video ref={videoRef} autoPlay playsInline width={180} height={120} className="rounded border" style={{ background: '#222' }} />
+        <video ref={videoRef} autoPlay playsInline width={180} height={120} className="rounded border border-border" style={{ background: '#222' }} />
         {!testStarted && (
           <div className="text-center mt-3">
-            <p className="mb-3">To begin the test please click Start Test and allow camera access.</p>
+            <p className="mb-3 text-muted-foreground">To begin the test please click Start Test and allow camera access.</p>
             <div className="flex justify-center">
-              <button className="btn-primary" onClick={() => setTestStarted(true)}>Start Test</button>
+              <Button onClick={() => setTestStarted(true)}>Start Test</Button>
             </div>
           </div>
         )}
-        {!cameraAllowed && testStarted && <div className="text-red-600 mt-2">Camera access is required to start the test.</div>}
+        {!cameraAllowed && testStarted && <div className="text-destructive mt-2">Camera access is required to start the test.</div>}
       </div>
 
   {testStarted ? (!cameraAllowed ? (
-        <div className="text-center text-lg text-red-600">Please allow camera access to begin the test.</div>
+        <div className="text-center text-lg text-destructive">Please allow camera access to begin the test.</div>
       ) : (
         <React.Fragment>
           <div className="flex items-center justify-between mb-4">
@@ -177,7 +178,7 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
             {!isSkillTest && (
               <div className="flex items-center gap-2">
                 <label className="text-sm">Test:</label>
-                <select value={testType} onChange={(e) => setTestType(e.target.value)} className="p-2 border rounded">
+                <select value={testType} onChange={(e) => setTestType(e.target.value)} className="p-2 border border-border rounded bg-background text-foreground">
                   <option value="aptitude">Aptitude</option>
                   <option value="english">English</option>
                   <option value="gn">General Knowledge</option>
@@ -187,10 +188,10 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
           </div>
 
           <div className="mb-3">
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-indigo-600" style={{ width: `${((currentIndex) / Math.max(1, total)) * 100}%` }} />
+            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+              <div className="h-full bg-primary" style={{ width: `${((currentIndex) / Math.max(1, total)) * 100}%` }} />
             </div>
-            <div className="text-sm text-gray-600 mt-1">Question {currentIndex + 1} of {total}</div>
+            <div className="text-sm text-muted-foreground mt-1">Question {currentIndex + 1} of {total}</div>
           </div>
 
           {showSummary ? (
@@ -198,23 +199,23 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
               <h3 className="text-lg font-medium mb-2">Summary</h3>
               <ul className="space-y-2 mb-4">
                 {questions.map((q, i) => (
-                  <li key={q.id} className="p-3 border rounded">
+                  <li key={q.id} className="p-3 border border-border rounded">
                     <div className="font-medium">{i + 1}. {q.text}</div>
                     <div className="mt-2 text-sm">
                       Your answer: <span className="font-semibold">{typeof answers[q.id] === 'number' ? q.options[answers[q.id] as number] : 'No answer'}</span>
                     </div>
-                    <div className="text-sm text-green-700">Correct answer: <span className="font-semibold">{q.options[q.correctIndex]}</span></div>
+                    <div className="text-sm text-green-700 dark:text-green-400">Correct answer: <span className="font-semibold">{q.options[q.correctIndex]}</span></div>
                   </li>
                 ))}
               </ul>
 
               <div className="flex items-center gap-3">
-                <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
+                <Button onClick={handleSubmit} disabled={submitting}>
                   {submitting ? 'Submitting...' : 'Confirm & Submit'}
-                </button>
-                <button className="p-2 border rounded" onClick={() => setShowSummary(false)}>
+                </Button>
+                <Button variant="outline" onClick={() => setShowSummary(false)}>
                   Back to questions
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -225,20 +226,20 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
                   {isSkillTest && currentQ.difficulty && (
                     <div className={`inline-block px-2 py-1 text-xs rounded ${
                       currentQ.difficulty === "easy" 
-                        ? "bg-green-100 text-green-800" 
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
                         : currentQ.difficulty === "moderate" 
-                        ? "bg-yellow-100 text-yellow-800" 
-                        : "bg-red-100 text-red-800"
+                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" 
+                        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                     }`}>
                       Difficulty: {currentQ.difficulty.charAt(0).toUpperCase() + currentQ.difficulty.slice(1)}
                     </div>
                   )}
-                  <div className="space-y-2">
+                  <div className="space-y-2 mt-2">
                     {currentQ.options.map((opt, idx) => (
                       <label 
                         key={idx} 
-                        className={`flex items-center gap-3 p-2 border rounded cursor-pointer ${
-                          answers[currentQ.id] === idx ? 'bg-indigo-50 border-indigo-300' : ''
+                        className={`flex items-center gap-3 p-2 border border-border rounded cursor-pointer hover:bg-accent ${
+                          answers[currentQ.id] === idx ? 'bg-indigo-50 border-indigo-300 dark:bg-indigo-950/30 dark:border-indigo-700' : ''
                         }`}
                       >
                         <input 
@@ -254,27 +255,27 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
 
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <button 
-                        className="p-2 border rounded" 
+                      <Button 
+                        variant="outline"
                         onClick={handlePrev} 
                         disabled={currentIndex === 0}
                       >
                         Previous
-                      </button>
-                      <button 
-                        className="p-2 border rounded" 
+                      </Button>
+                      <Button 
+                        variant="outline"
                         onClick={handleNext} 
                         disabled={currentIndex === total - 1}
                       >
                         Next
-                      </button>
+                      </Button>
                     </div>
-                    <button 
-                      className="p-2 border rounded" 
+                    <Button 
+                      variant="outline"
                       onClick={() => setShowSummary(true)}
                     >
                       Review & Submit
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -284,7 +285,7 @@ export default function AssessmentTest({ userId, initialTestType = "aptitude" }:
           )}
 
           {submittedResult && (
-            <div className="mt-4 p-3 border rounded flex flex-col items-center">
+            <div className="mt-4 p-3 border border-border rounded flex flex-col items-center">
               <div className="font-medium mb-2">Submitted</div>
               <div className="mb-2">Your score: {submittedResult.score} / {submittedResult.total}</div>
               {(() => {

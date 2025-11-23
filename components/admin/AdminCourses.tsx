@@ -25,6 +25,7 @@ interface Course {
   description: string;
   syllabus: string[];
   lectures: Lecture[];
+  questions?: any[];
 }
 
 export default function AdminCourses() {
@@ -49,13 +50,24 @@ export default function AdminCourses() {
   const [lectureBusy, setLectureBusy] = useState(false);
   const [editingLectureId, setEditingLectureId] = useState<string | null>(null);
 
+  // Question form state
+  const [questionCourseId, setQuestionCourseId] = useState<string | null>(null);
+  const [questionText, setQuestionText] = useState("");
+  const [option1, setOption1] = useState("");
+  const [option2, setOption2] = useState("");
+  const [option3, setOption3] = useState("");
+  const [option4, setOption4] = useState("");
+  const [correctOption, setCorrectOption] = useState(0);
+  const [questionBusy, setQuestionBusy] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchCourses();
   }, []);
 
   async function fetchCourses() {
     try {
-      const res = await fetch('/api/admin/courses');
+      const res = await fetch('/api/admin/courses', { cache: 'no-store' });
       const data = await res.json();
       if (data.courses) setCourses(data.courses);
     } catch (e) {
@@ -159,6 +171,87 @@ export default function AdminCourses() {
       fetchCourses();
     } catch (err) {
       alert("Failed to delete course");
+    }
+  }
+
+  async function onAddQuestion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!questionCourseId || !questionText || !option1 || !option2) return;
+    setQuestionBusy(true);
+    try {
+        const options = [option1, option2, option3, option4].filter(Boolean);
+        const method = editingQuestionId ? 'PUT' : 'POST';
+        const body: any = {
+            question: questionText,
+            options,
+            correctAnswer: correctOption
+        };
+        if (editingQuestionId) body.questionId = editingQuestionId;
+
+        const res = await fetch(`/api/admin/courses/${questionCourseId}/questions`, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to save question');
+        
+        // Update local state immediately
+        setCourses(prev => prev.map(c => 
+            c._id === questionCourseId 
+            ? { ...c, questions: data.questions } 
+            : c
+        ));
+
+        resetQuestionForm();
+        alert(editingQuestionId ? "Question updated successfully!" : "Question added successfully!");
+        // fetchCourses(); // Removed to prevent race conditions/flicker
+    } catch (err: any) {
+        alert(err.message || "Failed to save question");
+    } finally {
+        setQuestionBusy(false);
+    }
+  }
+
+  function resetQuestionForm() {
+    setQuestionText("");
+    setOption1("");
+    setOption2("");
+    setOption3("");
+    setOption4("");
+    setCorrectOption(0);
+    setEditingQuestionId(null);
+  }
+
+  function onEditQuestion(q: any) {
+    setQuestionText(q.question);
+    setOption1(q.options[0] || "");
+    setOption2(q.options[1] || "");
+    setOption3(q.options[2] || "");
+    setOption4(q.options[3] || "");
+    setCorrectOption(q.correctAnswer);
+    setEditingQuestionId(q._id);
+  }
+
+  async function onDeleteQuestion(questionId: string) {
+    if (!confirm("Are you sure you want to delete this question?")) return;
+    if (!questionCourseId) return;
+    
+    try {
+        const res = await fetch(`/api/admin/courses/${questionCourseId}/questions?questionId=${questionId}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error('Failed to delete question');
+        
+        // Update local state immediately
+        setCourses(prev => prev.map(c => 
+            c._id === questionCourseId 
+            ? { ...c, questions: data.questions } 
+            : c
+        ));
+    } catch (err) {
+        alert("Failed to delete question");
     }
   }
 
@@ -287,6 +380,93 @@ export default function AdminCourses() {
                       </button>
                     ))}
                   </div>
+                  
+                  {/* Test Management Hidden Temporarily
+                  <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="secondary" onClick={() => setQuestionCourseId(course._id)}>
+                            Manage Test ({course.questions?.length || 0} Qs)
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Manage Test Questions for {course.title}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-6">
+                            <form onSubmit={onAddQuestion} className="space-y-4 border p-4 rounded">
+                                <div className="flex justify-between items-center">
+                                    <h4 className="font-semibold">{editingQuestionId ? 'Edit Question' : 'Add New Question'}</h4>
+                                    {editingQuestionId && (
+                                        <Button type="button" variant="ghost" size="sm" onClick={resetQuestionForm}>
+                                            Cancel Edit
+                                        </Button>
+                                    )}
+                                </div>
+                                <div>
+                                    <Label>Question Text</Label>
+                                    <Textarea value={questionText} onChange={e => setQuestionText(e.target.value)} required placeholder="Enter question here..." />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <Label>Option 1</Label>
+                                        <Input value={option1} onChange={e => setOption1(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label>Option 2</Label>
+                                        <Input value={option2} onChange={e => setOption2(e.target.value)} required />
+                                    </div>
+                                    <div>
+                                        <Label>Option 3</Label>
+                                        <Input value={option3} onChange={e => setOption3(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <Label>Option 4</Label>
+                                        <Input value={option4} onChange={e => setOption4(e.target.value)} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <Label>Correct Option Index (0-3)</Label>
+                                    <select 
+                                        className="w-full p-2 border rounded bg-background"
+                                        value={correctOption}
+                                        onChange={e => setCorrectOption(Number(e.target.value))}
+                                    >
+                                        <option value={0}>Option 1</option>
+                                        <option value={1}>Option 2</option>
+                                        <option value={2}>Option 3</option>
+                                        <option value={3}>Option 4</option>
+                                    </select>
+                                </div>
+                                <Button type="submit" disabled={questionBusy} className="w-full">
+                                    {questionBusy ? 'Saving...' : (editingQuestionId ? 'Update Question' : 'Add Question')}
+                                </Button>
+                            </form>
+
+                            <div className="space-y-2">
+                                <h4 className="font-semibold">Existing Questions ({course.questions?.length || 0})</h4>
+                                {course.questions?.length === 0 && <p className="text-sm text-muted-foreground">No questions added yet.</p>}
+                                {course.questions?.map((q: any, i) => (
+                                    <div key={i} className="p-3 border rounded bg-muted/50 relative group">
+                                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button size="sm" variant="outline" onClick={() => onEditQuestion(q)}>Edit</Button>
+                                            <Button size="sm" variant="destructive" onClick={() => onDeleteQuestion(q._id)}>Delete</Button>
+                                        </div>
+                                        <div className="font-medium pr-20">Q{i+1}: {q.question}</div>
+                                        <ul className="list-disc list-inside text-sm mt-1 pl-2">
+                                            {q.options.map((opt: string, idx: number) => (
+                                                <li key={idx} className={idx === q.correctAnswer ? "text-green-600 font-semibold" : ""}>
+                                                    {opt}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </DialogContent>
+                  </Dialog>
+                  */}
+
                   <Button variant="destructive" size="sm" onClick={() => onDeleteCourse(course._id)} className="ml-auto">
                     Delete
                   </Button>

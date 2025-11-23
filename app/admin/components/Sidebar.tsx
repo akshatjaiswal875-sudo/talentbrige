@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Home, Briefcase, Users, FileText, BookOpen, Menu as MenuIcon } from "lucide-react";
+import { Home, Briefcase, Users, FileText, BookOpen, Menu as MenuIcon, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoginDialog } from "@/components/LoginDialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -15,6 +15,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const items = [
   { href: "/admin", label: "Dashboard", icon: Home },
   { href: "/admin/courses", label: "Upload Course", icon: BookOpen },
+  { href: "/admin/transactions", label: "Transactions", icon: CreditCard },
   { href: "/admin/internships", label: "Internships", icon: Briefcase },
   { href: "/admin/applications", label: "Applications", icon: FileText },
   { href: "/admin/users", label: "Users", icon: Users },

@@ -9,6 +9,12 @@ export interface ILecture {
   notesUrl?: string;
 }
 
+export interface IQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number; // Index of the correct option
+}
+
 export interface ICourse extends Document {
   title: string;
   category: string;
@@ -18,6 +24,7 @@ export interface ICourse extends Document {
   description: string;
   syllabus: string[];
   lectures: ILecture[];
+  questions: IQuestion[];
   createdAt: Date;
 }
 
@@ -30,6 +37,12 @@ const LectureSchema = new Schema<ILecture>({
   notesUrl: { type: String },
 });
 
+const QuestionSchema = new Schema<IQuestion>({
+  question: { type: String, required: true },
+  options: { type: [String], required: true },
+  correctAnswer: { type: Number, required: true },
+});
+
 const CourseSchema = new Schema<ICourse>({
   title: { type: String, required: true },
   category: { type: String, required: true },
@@ -39,6 +52,7 @@ const CourseSchema = new Schema<ICourse>({
   description: { type: String },
   syllabus: { type: [String], default: [] },
   lectures: { type: [LectureSchema], default: [] },
+  questions: { type: [QuestionSchema], default: [] },
   createdAt: { type: Date, default: Date.now },
 });
 
