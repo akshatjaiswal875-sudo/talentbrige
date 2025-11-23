@@ -6,7 +6,9 @@ export interface ITransaction extends Document {
   amount: string;
   paymentId: string;
   status: 'success' | 'failed' | 'pending';
+  declineReason?: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const TransactionSchema = new Schema<ITransaction>({
@@ -14,8 +16,10 @@ const TransactionSchema = new Schema<ITransaction>({
   courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
   amount: { type: String, required: true },
   paymentId: { type: String, required: true },
-  status: { type: String, enum: ['success', 'failed', 'pending'], default: 'success' },
-  createdAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['success', 'failed', 'pending'], default: 'pending' },
+  declineReason: { type: String },
+}, {
+  timestamps: true,
 });
 
 export const Transaction: Model<ITransaction> = mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);

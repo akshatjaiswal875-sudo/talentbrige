@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Briefcase, GraduationCap, Building, Search, FileCheck, Trophy, CheckCircle } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Header } from "@/components/header";
@@ -27,6 +28,16 @@ type Application = {
   status?: string;
 };
 
+type Course = {
+  _id: string;
+  title: string;
+  category?: string;
+  description?: string;
+  price?: string;
+  duration?: string;
+  bannerUrl?: string;
+};
+
 export default function Home() {
   const [featured, setFeatured] = useState<Internship[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,6 +45,8 @@ export default function Home() {
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
   const [applicationStatusMap, setApplicationStatusMap] = useState<Record<string, string>>({});
   const [applyingTo, setApplyingTo] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
   const fetchUserApplications = useCallback(async () => {
     try {
@@ -78,9 +91,33 @@ export default function Home() {
     }
   }, [fetchUserApplications]);
 
+  const fetchCourses = useCallback(async () => {
+    setCoursesLoading(true);
+    try {
+      const res = await fetch("/api/courses", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch courses");
+      const data = await res.json();
+      const items: Course[] = Array.isArray(data?.courses) ? data.courses : [];
+      const prioritized = [
+        ...items.filter((c) => (c.title || "").toLowerCase().includes("c++")),
+        ...items.filter((c) => !(c.title || "").toLowerCase().includes("c++")),
+      ].filter((course, index, self) => self.findIndex((c) => c._id === course._id) === index);
+      setCourses(prioritized);
+    } catch (err) {
+      console.error("Failed to fetch courses", err);
+      setCourses([]);
+    } finally {
+      setCoursesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchFeatured();
   }, [fetchFeatured]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -167,6 +204,78 @@ export default function Home() {
             Research company cultures, values, and growth opportunities before applying.
           </CardContent>
         </Card>
+      </section>
+
+      {/* Spotlight Courses */}
+      <section className="container mx-auto px-6 pb-12">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-3xl font-semibold">Kickstart With C++ &amp; More</h2>
+            <p className="text-sm text-muted-foreground">Enroll in industry-ready programs and start learning today.</p>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/learning">Browse All Courses</Link>
+          </Button>
+        </div>
+
+        <div className="mt-6 grid gap-6 md:grid-cols-3">
+          {coursesLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={`course-skeleton-${i}`} className="border rounded-lg p-6 bg-card animate-pulse space-y-4">
+                <div className="h-40 bg-muted/30 rounded-md" />
+                <div className="h-5 w-3/4 bg-muted/30 rounded" />
+                <div className="h-4 w-1/2 bg-muted/30 rounded" />
+                <div className="h-3 w-full bg-muted/30 rounded" />
+                <div className="h-3 w-2/3 bg-muted/30 rounded" />
+                <div className="h-10 w-full bg-muted/30 rounded" />
+              </div>
+            ))
+          ) : (
+            courses.slice(0, 3).map((course) => (
+              <Card key={course._id} className="flex flex-col overflow-hidden">
+                <div className="relative aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
+                  {course.bannerUrl ? (
+                    <Image
+                      src={course.bannerUrl}
+                      alt={course.title}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-secondary text-secondary-foreground text-sm">
+                      Course Preview
+                    </div>
+                  )}
+                  {course.category && (
+                    <Badge className="absolute top-2 right-2" variant="secondary">{course.category}</Badge>
+                  )}
+                </div>
+                <CardHeader>
+                  <CardTitle className="line-clamp-1">{course.title}</CardTitle>
+                  <CardDescription>{[course.duration, course.price].filter(Boolean).join(" • ")}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1">
+                  <p className="text-sm text-muted-foreground line-clamp-3">{course.description}</p>
+                </CardContent>
+                <CardFooter>
+                  <Button asChild className="w-full">
+                    <Link href={`/learning/${course._id}`}>
+                      Explore Course
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {!coursesLoading && courses.length === 0 && (
+          <div className="mt-6 rounded-md border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+            Courses will appear here soon. Stay tuned!
+          </div>
+        )}
       </section>
 
       {/* Explore & Highlights */}

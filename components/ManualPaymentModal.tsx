@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,15 +13,39 @@ interface ManualPaymentModalProps {
   courseTitle: string;
   price: string;
   courseId: string;
+  existingStatus?: 'success' | 'failed' | 'pending' | null;
+  declineReason?: string | null;
+  onSubmitted?: () => void;
 }
 
-export function ManualPaymentModal({ isOpen, onClose, courseTitle, price, courseId }: ManualPaymentModalProps) {
+export function ManualPaymentModal({
+  isOpen,
+  onClose,
+  courseTitle,
+  price,
+  courseId,
+  existingStatus,
+  declineReason,
+  onSubmitted,
+}: ManualPaymentModalProps) {
   const [utr, setUtr] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const UPI_ID = "8188864146@axl";
+
+  useEffect(() => {
+    if (!isOpen) {
+      setTimeout(() => {
+        setSubmitted(false);
+        setUtr("");
+        setError(null);
+        setLoading(false);
+      }, 200);
+    }
+  }, [isOpen]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(UPI_ID);
@@ -32,6 +56,10 @@ export function ManualPaymentModal({ isOpen, onClose, courseTitle, price, course
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!utr.trim()) return;
+    if (existingStatus === 'pending') {
+      setError("A payment submission is already pending review.");
+      return;
+    }
     
     setLoading(true);
     try {
@@ -41,11 +69,17 @@ export function ManualPaymentModal({ isOpen, onClose, courseTitle, price, course
         body: JSON.stringify({ courseId, utr, amount: price }),
       });
 
-      if (!res.ok) throw new Error("Failed to submit payment");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to submit payment");
+      }
       
       setSubmitted(true);
+      setError(null);
+      onSubmitted?.();
     } catch (err) {
-      alert("Failed to submit payment details. Please try again.");
+      const message = err instanceof Error ? err.message : "Failed to submit payment";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -60,6 +94,18 @@ export function ManualPaymentModal({ isOpen, onClose, courseTitle, price, course
             Pay <strong>{price}</strong> via UPI to enroll.
           </DialogDescription>
         </DialogHeader>
+
+        {existingStatus === 'failed' && !submitted && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            Your previous payment attempt was declined{declineReason ? `: ${declineReason}` : "."} Please ensure the details are correct before resubmitting.
+          </div>
+        )}
+
+        {existingStatus === 'pending' && !submitted && (
+          <div className="rounded-md border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+            A payment submission for this course is already pending review. You’ll be notified once it is processed.
+          </div>
+        )}
         
         {!submitted ? (
           <div className="space-y-6 py-4">
@@ -83,13 +129,20 @@ export function ManualPaymentModal({ isOpen, onClose, courseTitle, price, course
                   value={utr} 
                   onChange={(e) => setUtr(e.target.value)}
                   required 
+                  disabled={loading || existingStatus === 'pending'}
                 />
                 <p className="text-xs text-muted-foreground">
                   After payment, enter the 12-digit UTR number from your payment app.
                 </p>
               </div>
               
-              <Button type="submit" className="w-full" disabled={loading}>
+              {error && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading || existingStatus === 'pending'}>
                 {loading ? "Submitting..." : "Submit Payment Details"}
               </Button>
             </form>

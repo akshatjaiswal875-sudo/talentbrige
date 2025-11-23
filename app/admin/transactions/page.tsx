@@ -20,6 +20,7 @@ interface Transaction {
   paymentId: string; // UTR
   status: 'success' | 'failed' | 'pending';
   createdAt: string;
+  declineReason?: string;
 }
 
 export default function AdminTransactionsPage() {
@@ -71,11 +72,18 @@ export default function AdminTransactionsPage() {
 
   async function handleDecline(id: string) {
     if (!confirm("Are you sure you want to DECLINE this transaction?")) return;
-    
+
+    const note = prompt("Add a note for the learner (optional):");
+    if (note === null) {
+      return;
+    }
+
     setProcessingId(id);
     try {
       const res = await fetch(`/api/admin/transactions/${id}/decline`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: note?.trim() || undefined })
       });
       
       if (res.ok) {
@@ -84,7 +92,8 @@ export default function AdminTransactionsPage() {
           t._id === id ? { ...t, status: 'failed' } : t
         ));
       } else {
-        alert("Failed to decline transaction");
+        const data = await res.json().catch(() => ({}));
+        alert(data?.error || "Failed to decline transaction");
       }
     } catch (error) {
       alert("Error declining transaction");

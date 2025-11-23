@@ -32,6 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // Update Transaction Status
     transaction.status = 'success';
+    transaction.declineReason = undefined;
     await transaction.save();
 
     // Enroll User in Course

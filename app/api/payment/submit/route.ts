@@ -59,7 +59,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       success: true, 
       message: "Payment submitted successfully",
-      transactionId: transaction._id 
+      transactionId: transaction._id,
+      status: transaction.status 
     });
 
   } catch (error) {

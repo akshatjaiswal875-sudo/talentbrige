@@ -69,3 +69,40 @@ export async function sendAccessGrantedEmail(userEmail: string, courseTitle: str
     console.error("Error sending access granted email:", error);
   }
 }
+
+export async function sendPaymentDeclinedEmail(
+  userEmail: string,
+  userName: string,
+  courseTitle: string,
+  amount: string,
+  utr: string,
+  reason?: string
+) {
+  if (!SMTP_USER || !SMTP_PASS) {
+    console.log("⚠️ SMTP credentials missing. Skipping email.");
+    console.log(`[MOCK EMAIL TO USER] Payment declined for ${courseTitle}, reason: ${reason || 'n/a'}`);
+    return;
+  }
+
+  const mailOptions = {
+    from: SMTP_USER,
+    to: userEmail,
+    subject: `Payment Declined for ${courseTitle}`,
+    html: `
+      <h2>Payment Declined</h2>
+      <p>Hi ${userName || 'there'},</p>
+      <p>We reviewed your payment submission for <strong>${courseTitle}</strong> (UTR: ${utr}).</p>
+      <p>The request was <strong>declined</strong>${reason ? ` with the following note:</p><blockquote>${reason}</blockquote>` : '.</p>'}
+      <p>Amount: ${amount}</p>
+      <p>You can resubmit your payment details from the course page or contact support if you need help.</p>
+      <br/>
+      <p>Team TalentBridge</p>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending payment declined email:", error);
+  }
+}

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayCircle, Lock, FileText, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Lecture {
   _id: string;
@@ -38,7 +39,6 @@ import { ManualPaymentModal } from "@/components/ManualPaymentModal";
 
 export default function CoursePage() {
   const { courseId } = useParams();
-  const router = useRouter();
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
@@ -47,6 +47,11 @@ export default function CoursePage() {
   const [completedLectures, setCompletedLectures] = useState<Set<string>>(new Set());
   const [marking, setMarking] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [transactionStatus, setTransactionStatus] = useState<'success' | 'failed' | 'pending' | null>(null);
+  const [transactionReason, setTransactionReason] = useState<string | null>(null);
+  const [showApprovalNotice, setShowApprovalNotice] = useState(false);
+  const approvalNoticeShownRef = useRef(false);
+  const previousAccessRef = useRef<boolean | null>(null);
 
   const fetchCourse = React.useCallback(async () => {
     try {
@@ -93,6 +98,36 @@ export default function CoursePage() {
     }
   }, [courseId, course]);
 
+  const fetchPaymentStatus = React.useCallback(async () => {
+    try {
+        const res = await fetch(`/api/payment/status?courseId=${courseId}`, { cache: "no-store" });
+        if (res.status === 401) {
+          setTransactionStatus(null);
+          setTransactionReason(null);
+          return;
+        }
+        if (!res.ok) {
+          setTransactionStatus(null);
+          setTransactionReason(null);
+          return;
+        }
+        const data = await res.json();
+        if (!data || !data.status) {
+          setTransactionStatus(null);
+          setTransactionReason(null);
+          return;
+        }
+        setTransactionStatus(data.status);
+        setTransactionReason(data.declineReason || null);
+
+        if (data.status === 'success') {
+          fetchCourse();
+        }
+    } catch (e) {
+        console.error("Failed to fetch payment status", e);
+    }
+  }, [courseId, fetchCourse]);
+
   useEffect(() => {
     fetchCourse();
   }, [fetchCourse]);
@@ -102,6 +137,34 @@ export default function CoursePage() {
         fetchProgress();
     }
   }, [user, course, fetchProgress]); // Depend on course ID to avoid deep object diff issues
+
+  useEffect(() => {
+    if (!user || !course) return;
+    if (!hasAccess || !approvalNoticeShownRef.current) {
+        fetchPaymentStatus();
+    }
+  }, [user, course, hasAccess, fetchPaymentStatus]);
+
+  useEffect(() => {
+    if (transactionStatus === 'success' && !approvalNoticeShownRef.current) {
+        setShowApprovalNotice(true);
+        approvalNoticeShownRef.current = true;
+    }
+  }, [transactionStatus]);
+
+  useEffect(() => {
+    if (previousAccessRef.current === null) {
+        previousAccessRef.current = hasAccess;
+        return;
+    }
+
+    if (!previousAccessRef.current && hasAccess && !approvalNoticeShownRef.current) {
+        setShowApprovalNotice(true);
+        approvalNoticeShownRef.current = true;
+    }
+
+    previousAccessRef.current = hasAccess;
+  }, [hasAccess]);
 
   useEffect(() => {
     if (activeLecture && user && hasAccess) {
@@ -160,7 +223,17 @@ export default function CoursePage() {
 
   function handleEnroll() {
     if (!course) return;
+    if (transactionStatus === 'pending') {
+      alert("Your payment is currently under review. We'll notify you once it's approved.");
+      return;
+    }
     setIsPaymentModalOpen(true);
+  }
+
+  function handleCloseApprovalNotice() {
+    setShowApprovalNotice(false);
+    setTransactionStatus(null);
+    setTransactionReason(null);
   }
 
   if (loading) return <div className="p-8 text-center">Loading course...</div>;
@@ -168,6 +241,16 @@ export default function CoursePage() {
 
   return (
     <div className="container mx-auto py-6 px-4">
+      {transactionStatus === 'pending' && (
+        <div className="mb-6 rounded-md border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          Your payment request is pending verification. We will email you once access is granted.
+        </div>
+      )}
+      {transactionStatus === 'failed' && (
+        <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          Your last payment submission was declined. {transactionReason ? <span>Reason: {transactionReason}</span> : "Please review your payment details and try again."}
+        </div>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -199,8 +282,8 @@ export default function CoursePage() {
                           <Lock className="h-12 w-12 mx-auto text-slate-400" />
                           <h3 className="text-xl font-bold">This course is locked</h3>
                           <p className="text-slate-300">Enroll in this course to access all lectures.</p>
-                          <Button size="lg" onClick={handleEnroll}>
-                              Enroll Now
+                        <Button size="lg" onClick={handleEnroll} disabled={transactionStatus === 'pending'}>
+                          {transactionStatus === 'pending' ? "Payment Pending" : "Enroll Now"}
                           </Button>
                       </div>
                   )}
@@ -252,8 +335,8 @@ export default function CoursePage() {
                     )}
                 </div>
                 {!hasAccess && (
-                    <Button onClick={handleEnroll}>
-                        Enroll Now
+                  <Button onClick={handleEnroll} disabled={transactionStatus === 'pending'}>
+                    {transactionStatus === 'pending' ? "Payment Pending" : "Enroll Now"}
                     </Button>
                 )}
             </div>
@@ -325,6 +408,26 @@ export default function CoursePage() {
         </div>
       </div>
       
+      <Dialog open={showApprovalNotice} onOpenChange={(open) => {
+        if (!open) {
+          handleCloseApprovalNotice();
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Course Approved!</DialogTitle>
+            <DialogDescription>
+              Your live class starts on 1st December 2025. We'll send reminders as the date approaches.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={handleCloseApprovalNotice} autoFocus>
+              Got it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {course && (
         <ManualPaymentModal 
           isOpen={isPaymentModalOpen} 
@@ -332,6 +435,12 @@ export default function CoursePage() {
           courseTitle={course.title} 
           price={course.price || "₹0"} 
           courseId={course._id} 
+          existingStatus={transactionStatus}
+          declineReason={transactionReason}
+          onSubmitted={() => {
+            setIsPaymentModalOpen(false);
+            fetchPaymentStatus();
+          }}
         />
       )}
     </div>
