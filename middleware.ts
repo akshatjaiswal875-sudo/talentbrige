@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose';
+import { SITE_MAINTENANCE_MODE } from "@/config/siteStatus";
 
 const JWT_SECRET = process.env.SECRET_JWT;
 if (!JWT_SECRET || typeof JWT_SECRET !== 'string' || JWT_SECRET.trim() === '') {
@@ -23,7 +24,10 @@ export async function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;
 
     const maintenanceEnv = process.env.MAINTENANCE_MODE || process.env.NEXT_PUBLIC_MAINTENANCE_MODE || "";
-    const maintenanceMode = ["1", "true", "on"].includes(maintenanceEnv.toLowerCase());
+    const normalized = maintenanceEnv.trim().toLowerCase();
+    const maintenanceMode = normalized
+        ? ["1", "true", "on", "yes"].includes(normalized)
+        : SITE_MAINTENANCE_MODE;
 
     if (maintenanceMode && !path.startsWith('/maintenance')) {
         const maintenanceUrl = request.nextUrl.clone();
