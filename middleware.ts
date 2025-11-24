@@ -22,6 +22,18 @@ export async function middleware(request: NextRequest) {
 
     const path = request.nextUrl.pathname;
 
+    const maintenanceEnv = process.env.MAINTENANCE_MODE || process.env.NEXT_PUBLIC_MAINTENANCE_MODE || "";
+    const maintenanceMode = ["1", "true", "on"].includes(maintenanceEnv.toLowerCase());
+
+    if (maintenanceMode && !path.startsWith('/maintenance')) {
+        const maintenanceUrl = request.nextUrl.clone();
+        maintenanceUrl.pathname = '/maintenance';
+        maintenanceUrl.search = '';
+        const response = NextResponse.rewrite(maintenanceUrl);
+        response.headers.set('x-maintenance-mode', 'true');
+        return response;
+    }
+
     const token = request.cookies.get('token')?.value;
 
     const ip =
@@ -53,12 +65,12 @@ export async function middleware(request: NextRequest) {
 
     // Redirect admin users visiting public pages to /admin
     const isPublicPath = path === '/' || path.startsWith('/internships') || path.startsWith('/companies');
-    if (isAdmin && isPublicPath && !path.startsWith('/admin')) {
+    if (!maintenanceMode && isAdmin && isPublicPath && !path.startsWith('/admin')) {
         return NextResponse.redirect(new URL('/admin', request.url));
     }
 
     // Redirect non-admin (including unauthenticated) users away from /admin/* to /
-    if (path.startsWith('/admin')) {
+    if (!maintenanceMode && path.startsWith('/admin')) {
         if (!isAdmin) {
             return NextResponse.redirect(new URL('/', request.url));
         }
