@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/AuthProvider";
 import FooterWrapper from "@/components/FooterWrapper";
 
@@ -59,6 +60,7 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <FooterWrapper />
+            <Analytics />
           </AuthProvider>
         </GoogleOAuthProvider>
       </body>
